@@ -1,21 +1,18 @@
-
-
-
-// FINAL WORKING CODE - v9 (Stricter Prompt to Remove Symbols)
+// FINAL WORKING CODE - v11 (Using Your Improved Cleaning Logic)
 document.addEventListener('DOMContentLoaded', () => {
 
     const commandInput = document.getElementById('command-input');
     const generateBtn = document.getElementById('generate-btn');
     const previewScreen = document.getElementById('preview-screen');
 
-   const GEMINI_API_KEY = 'PASTE_YOUR_API_KEY_HERE'; // Use your newest API key  constants
-    
+    const GEMINI_API_KEY = 'PASTE_YOUR_API_KEY_HERE'; // Use your newest API key  constantskey
+
     async function runAiGenerator() {
         if (!GEMINI_API_KEY || GEMINI_API_KEY === 'PASTE_YOUR_API_KEY_HERE') {
             previewScreen.innerHTML = `<p class="loading-text" style="color:red;">Error: Please paste your API Key into script.js</p>`;
             return;
         }
-        
+
         const userCommand = commandInput.value.trim();
         if (userCommand === '') {
             previewScreen.innerHTML = `<p class="loading-text" style="color:orange;">Please enter a command.</p>`;
@@ -24,9 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         previewScreen.innerHTML = '<p class="loading-text">Generating animation...</p>';
 
-        // =================================================================
-        // THE NEW, EVEN STRICTER PROMPT IS HERE
-        // =================================================================
         const prompt = `
             You are an expert motion graphics designer who ONLY responds with raw HTML code.
             The user wants an animation for: "${userCommand}"
@@ -41,12 +35,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             Your entire response must be ONLY the raw HTML code. Do not use markdown or any explanations.
         `;
-        
+
         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-        
+
         const requestBody = {
             "contents": [{ "parts": [{ "text": prompt }] }],
-            "generationConfig": { "temperature": 0.7, "maxOutputTokens": 4096 }
+            "generationConfig": {
+                "temperature": 0.2,
+                "topK": 1,
+                "topP": 1,
+                "maxOutputTokens": 4096
+            }
         };
 
         try {
@@ -59,27 +58,36 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.candidates && data.candidates.length > 0) {
-                const rawResponse = data.candidates[0].content.parts[0].text;
-                
-                const htmlStartIndex = rawResponse.indexOf('<');
-                let processedResponse = rawResponse;
+                // =================================================================
+                // YOUR NEW, MORE ROBUST CLEANING CODE
+                // =================================================================
+                let rawResponse = data.candidates[0].content.parts[0].text;
 
-                if (htmlStartIndex !== -1) {
-                    processedResponse = rawResponse.substring(htmlStartIndex);
+                const htmlBlockRegex = /```html\s*([\s\S]*?)\s*```/;
+                const match = rawResponse.match(htmlBlockRegex);
+
+                let cleanedCode = rawResponse;
+
+                if (match && match[1]) {
+                    cleanedCode = match[1].trim();
+                } else {
+                    const startIndex = cleanedCode.indexOf('<');
+                    const lastIndex = cleanedCode.lastIndexOf('>');
+                    if (startIndex !== -1 && lastIndex !== -1) {
+                        cleanedCode = cleanedCode.substring(startIndex, lastIndex + 1).trim();
+                    }
                 }
-                
-                const txt = document.createElement("textarea");
-                txt.innerHTML = processedResponse;
-                const cleanedCode = txt.value;
 
-                previewScreen.innerHTML = cleanedCode;
+                const txt = document.createElement("textarea");
+                txt.innerHTML = cleanedCode;
+                previewScreen.innerHTML = txt.value;
 
             } else {
                 console.error("Invalid response from AI:", data);
                 let errorMessage = "AI response was empty or invalid.";
                 if (data.promptFeedback && data.promptFeedback.blockReason) {
                     errorMessage += ` Reason: ${data.promptFeedback.blockReason}`;
-                } else if(data.error) {
+                } else if (data.error) {
                     errorMessage += ` API Error: ${data.error.message}`;
                 }
                 previewScreen.innerHTML = `<p class="loading-text" style="color:red;">${errorMessage}</p>`;
@@ -93,4 +101,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     generateBtn.addEventListener('click', runAiGenerator);
 });
-
