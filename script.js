@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateBtn = document.getElementById('generate-btn');
     const previewScreen = document.getElementById('preview-screen');
 
-   const GEMINI_API_KEY = 'AIzaSyCbD2M0Ain9pQLhc7A1ofbR-HHm_7TQjRs'; // Use your newest API key  constants
+   const GEMINI_API_KEY = 'PASTE_YOUR_API_KEY_HERE'; // Use your newest API key  constants
     
     async function runAiGenerator() {
         if (!GEMINI_API_KEY || GEMINI_API_KEY === 'PASTE_YOUR_API_KEY_HERE') {
